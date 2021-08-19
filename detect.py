@@ -28,13 +28,13 @@ from utils.torch_utils import select_device, load_classifier, time_sync
 
 
 @torch.no_grad()
-def run(weights='yolov5s.pt',  # model.pt path(s)
-        source='data/images',  # file/dir/URL/glob, 0 for webcam
-        imgsz=640,  # inference size (pixels)
-        conf_thres=0.25,  # confidence threshold
+def run(weights='runs/train/exp2/weights/best.pt',  # model.pt path(s)
+        source='hanssem/images/val',  # file/dir/URL/glob, 0 for webcam
+        imgsz=[640],  # inference size (pixels)
+        conf_thres=0.1,  # confidence threshold
         iou_thres=0.45,  # NMS IOU threshold
         max_det=1000,  # maximum detections per image
-        device='',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
+        device='0,1,2,3',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
         view_img=False,  # show results
         save_txt=False,  # save results to *.txt
         save_conf=False,  # save confidences in --save-txt labels
@@ -54,6 +54,8 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
         half=False,  # use FP16 half-precision inference
         tfl_int8=False,  # INT8 quantized TFLite model
         ):
+
+    imgsz *= 2 if len(imgsz) == 1 else 1  # expand
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
@@ -118,6 +120,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     vid_path, vid_writer = [None] * bs, [None] * bs
 
     # Run inference
+    formatList = list()
     if pt and device.type != 'cpu':
         model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters())))  # run once
     t0 = time.time()
@@ -206,9 +209,9 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                         if save_crop:
                             #save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
                             print("names : ", names[c])
-                            save_one_box(xyxy, imc, file=save_dir / 'cropeedImages' / f'{p.stem}_{names[c]}.jpg', BGR=True)
-                            save_one_json(xyxy,imc, tag=names[c],)
-
+                            save_one_box(xyxy, imc, file=save_dir / 'croppedImages' / f'{p.stem}_{names[c]}.jpg', BGR=True)
+                            format = save_one_json(xyxy,imc, tag=names[c], imagePath=save_dir/"croppedImages"/f"{p.stem}_{names[c]}.jpg")
+                            formatList.append(format)
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({t2 - t1:.3f}s)')
@@ -245,7 +248,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
         strip_optimizer(weights)  # update model (to fix SourceChangeWarning)
 
     print(f'Done. ({time.time() - t0:.3f}s)')
-
+    return formatList
 
 def parse_opt():
     parser = argparse.ArgumentParser()

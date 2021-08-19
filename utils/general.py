@@ -715,7 +715,7 @@ def save_one_box(xyxy, im, file='image.jpg', gain=1.02, pad=10, square=False, BG
     return crop
 
 
-def save_one_json(xyxy, im, tag, objectImagePath, gain=1.02, pad=10, square=False):
+def save_one_json(xyxy, im, tag, imagePath, gain=1.02, pad=10, square=False):
     import uuid
     # Save image crop as {file} with crop size multiple {gain} and {pad} pixels. Save and/or return crop
     xyxy = torch.tensor(xyxy).view(-1, 4)
@@ -742,15 +742,10 @@ def save_one_json(xyxy, im, tag, objectImagePath, gain=1.02, pad=10, square=Fals
             "ymax":ymax
         },
         "tag" : tag,
-        "objectImagePath":str(objectImagePath),
+        "objectImagePath":str(imagePath),
     }
 
     return format
-
-    # crop = im[int(xyxy[0, 1]):int(xyxy[0, 3]), int(xyxy[0, 0]):int(xyxy[0, 2]), ::(1 if BGR else -1)]
-    # if save:
-    #     cv2.imwrite(str(increment_path(file, mkdir=True).with_suffix('.jpg')), crop)
-    # return crop
 
 def increment_path(path, exist_ok=False, sep='', mkdir=False):
     # Increment file or directory path, i.e. runs/exp --> runs/exp{sep}2, runs/exp{sep}3, ... etc.
@@ -765,7 +760,7 @@ def increment_path(path, exist_ok=False, sep='', mkdir=False):
         i = [int(m.groups()[0]) for m in matches if m]  # indices
         n = max(i) + 1 if i else 2  # increment number
         path = Path(f"{path}{sep}{n}{suffix}")
-
+       
     dir = path if path.suffix == '' else path.parent  # directory
     if not dir.exists() and mkdir:
         dir.mkdir(parents=True, exist_ok=True)  # make directory
