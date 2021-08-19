@@ -715,17 +715,57 @@ def save_one_box(xyxy, im, file='image.jpg', gain=1.02, pad=10, square=False, BG
     return crop
 
 
+def save_one_json(xyxy, im, tag, objectImagePath, gain=1.02, pad=10, square=False):
+    import uuid
+    # Save image crop as {file} with crop size multiple {gain} and {pad} pixels. Save and/or return crop
+    xyxy = torch.tensor(xyxy).view(-1, 4)
+    b = xyxy2xywh(xyxy)  # boxes
+    if square:
+        b[:, 2:] = b[:, 2:].max(1)[0].unsqueeze(1)  # attempt rectangle to square
+    b[:, 2:] = b[:, 2:] * gain + pad  # box wh * gain + pad
+    xyxy = xywh2xyxy(b).long()
+    
+
+    clip_coords(xyxy, im.shape)
+
+    xmin = int(xyxy[0,0])
+    xmax = int(xyxy[0,2])
+    ymin = int(xyxy[0,1])
+    ymax = int(xyxy[0,3])
+    
+    format = {
+        "objectID" : str(uuid.uuid4()),
+        "location" : {
+            "xmin":xmin,
+            "ymin":ymin,
+            "xmax":xmax,
+            "ymax":ymax
+        },
+        "tag" : tag,
+        "objectImagePath":str(objectImagePath),
+    }
+
+    return format
+
+    # crop = im[int(xyxy[0, 1]):int(xyxy[0, 3]), int(xyxy[0, 0]):int(xyxy[0, 2]), ::(1 if BGR else -1)]
+    # if save:
+    #     cv2.imwrite(str(increment_path(file, mkdir=True).with_suffix('.jpg')), crop)
+    # return crop
+
 def increment_path(path, exist_ok=False, sep='', mkdir=False):
     # Increment file or directory path, i.e. runs/exp --> runs/exp{sep}2, runs/exp{sep}3, ... etc.
     path = Path(path)  # os-agnostic
     if path.exists() and not exist_ok:
         suffix = path.suffix
+
+        
         path = path.with_suffix('')
         dirs = glob.glob(f"{path}{sep}*")  # similar paths
         matches = [re.search(rf"%s{sep}(\d+)" % path.stem, d) for d in dirs]
         i = [int(m.groups()[0]) for m in matches if m]  # indices
         n = max(i) + 1 if i else 2  # increment number
-        path = Path(f"{path}{sep}{n}{suffix}")  # update path
+        path = Path(f"{path}{sep}{n}{suffix}")
+
     dir = path if path.suffix == '' else path.parent  # directory
     if not dir.exists() and mkdir:
         dir.mkdir(parents=True, exist_ok=True)  # make directory
